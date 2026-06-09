@@ -1,4 +1,4 @@
-# World Cup 2026 Prediction Explorer
+# Known World Cup 2026 Predictions Portal
 
 An exploratory dashboard that shows a model's view of the 2026 World Cup —
 title odds, group-winner probabilities, and head-to-head match predictions — to

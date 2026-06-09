@@ -21,7 +21,16 @@ from collections import defaultdict
 # ---- tunables -------------------------------------------------------------
 HALF_LIFE_DAYS = 365 * 2          # recent 2 years weigh ~2x vs 4 years ago
 MAX_GOALS = 8                     # truncate the score grid here
-ELO_BLEND = 0.35                  # 0 = pure Poisson, 1 = pure Elo-implied
+ELO_BLEND = 0.70                  # 0 = pure Poisson, 1 = pure Elo-implied.
+                                  # Weighted toward Elo so favourites track the
+                                  # market/Opta rather than raw goal tallies
+                                  # (which over-rate teams that pad goals on
+                                  # weak opposition).
+ELO_MULT_SPREAD = 1.30            # width of the Elo goal-multiplier band: the
+                                  # multiplier runs (1 - SPREAD/2)..(1 + SPREAD/2)
+                                  # from huge underdog to huge favourite. Wider =
+                                  # favourites dominate more decisively (closer to
+                                  # Opta's concentrated odds).
 RECENT_CUTOFF_YEARS = 8           # ignore matches older than this for fitting
 
 
@@ -94,9 +103,9 @@ def _elo_implied_xg(params, home, away):
     ea = params.elo.get(away, 1500)
     # logistic expected score from Elo, then map to a goals multiplier
     exp_home = 1 / (1 + 10 ** ((ea - eh) / 400))
-    # exp_home in (0,1); center at 0.5 -> multiplier around 1.0
-    mult_home = 0.6 + 0.8 * exp_home
-    mult_away = 0.6 + 0.8 * (1 - exp_home)
+    # exp_home in (0,1); centered so an even matchup gives a ~1.0 multiplier.
+    mult_home = 1.0 + ELO_MULT_SPREAD * (exp_home - 0.5)
+    mult_away = 1.0 + ELO_MULT_SPREAD * ((1 - exp_home) - 0.5)
     return mult_home, mult_away
 
 

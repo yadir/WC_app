@@ -160,8 +160,10 @@ def simulate(params, n_sims=10000, seed=42):
     title = defaultdict(int)
     group_win = defaultdict(int)
     advance = defaultdict(int)
-    reach_final = defaultdict(int)
+    reach_r16 = defaultdict(int)
+    reach_qf = defaultdict(int)
     reach_sf = defaultdict(int)
+    reach_final = defaultdict(int)
 
     # which R32 matches carry THIRD slots, with their candidate groups
     third_slots = []
@@ -195,10 +197,14 @@ def simulate(params, n_sims=10000, seed=42):
         order = {"R32": 0, "R16": 1, "QF": 2, "SF": 3, "F": 4, "Champion": 5}
         for t, r in reached.items():
             lvl = order[r]
-            if lvl >= order["F"]:
-                reach_final[t] += 1
+            if lvl >= order["R16"]:
+                reach_r16[t] += 1
+            if lvl >= order["QF"]:
+                reach_qf[t] += 1
             if lvl >= order["SF"]:
                 reach_sf[t] += 1
+            if lvl >= order["F"]:
+                reach_final[t] += 1
 
     def to_prob(d):
         return {t: c / n_sims for t, c in d.items()}
@@ -207,7 +213,9 @@ def simulate(params, n_sims=10000, seed=42):
         "title": to_prob(title),
         "group_win": to_prob(group_win),
         "advance": to_prob(advance),
-        "reach_final": to_prob(reach_final),
+        "reach_r16": to_prob(reach_r16),
+        "reach_qf": to_prob(reach_qf),
         "reach_sf": to_prob(reach_sf),
+        "reach_final": to_prob(reach_final),
         "n_sims": n_sims,
     }
