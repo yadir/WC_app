@@ -246,10 +246,13 @@ if sim is None or params is None:
 MAX_GOALS = 8
 ELO_BLEND = 0.70
 ELO_MULT_SPREAD = 1.30
+HOST_TEAMS = {"United States", "Canada", "Mexico"}   # keep in sync with src/model.py
+HOST_ELO_BONUS = 50
 
 
 def _elo_mult(home, away):
-    eh = params["elo"].get(home, 1500); ea = params["elo"].get(away, 1500)
+    eh = params["elo"].get(home, 1500) + (HOST_ELO_BONUS if home in HOST_TEAMS else 0)
+    ea = params["elo"].get(away, 1500) + (HOST_ELO_BONUS if away in HOST_TEAMS else 0)
     exp_home = 1 / (1 + 10 ** ((ea - eh) / 400))
     return (1.0 + ELO_MULT_SPREAD * (exp_home - 0.5),
             1.0 + ELO_MULT_SPREAD * ((1 - exp_home) - 0.5))
@@ -462,8 +465,9 @@ elif page == "Group Explorer":
 # ===========================================================================
 elif page == "Match Predictor":
     header("Head to head", "Match Predictor",
-           "Pick any two teams to see how the model expects the game to go, "
-           "at a neutral World Cup venue.")
+           "Pick any two teams to see how the model expects the game to go. "
+           "Neutral venue — except the co-hosts (USA, Canada, Mexico), who carry "
+           "a slight home advantage.")
 
     c1, c2 = st.columns(2)
     teams_sorted = sorted(ALL_TEAMS)
@@ -624,7 +628,8 @@ else:
         "<p>From the results we estimate each team's attacking and defensive strength "
         "(time-weighted toward recent games), then blend it heavily with their Elo "
         "rating. The blend is the key dial — leaning on Elo keeps the favourites "
-        "realistic instead of over-rating goal-padding.</p></div></div>"
+        "realistic instead of over-rating goal-padding. The three co-hosts (USA, "
+        "Canada, Mexico) get a slight home-soil bonus on top.</p></div></div>"
 
         "<div class='step'><div class='bdg'>2</div><div class='bd'>"
         "<b>Predict a single match</b>"

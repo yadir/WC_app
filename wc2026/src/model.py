@@ -31,6 +31,13 @@ ELO_MULT_SPREAD = 1.30            # width of the Elo goal-multiplier band: the
                                   # from huge underdog to huge favourite. Wider =
                                   # favourites dominate more decisively (closer to
                                   # Opta's concentrated odds).
+
+# Host (home) advantage for the 2026 co-hosts. The standard Elo convention is
+# ~100 points for a true home game (worth roughly a third of a goal); we use a
+# deliberately "slight" half-value since co-hosts don't play every match in a
+# true home stadium. Bump toward 100 for a stronger boost.
+HOST_TEAMS = {"United States", "Canada", "Mexico"}
+HOST_ELO_BONUS = 50
 RECENT_CUTOFF_YEARS = 8           # ignore matches older than this for fitting
 
 
@@ -98,9 +105,13 @@ def fit(results_df, elo_dict=None):
 
 
 def _elo_implied_xg(params, home, away):
-    """Translate an Elo gap into an expected-goals tilt."""
-    eh = params.elo.get(home, 1500)
-    ea = params.elo.get(away, 1500)
+    """Translate an Elo gap into an expected-goals tilt.
+
+    Co-hosts (USA/Canada/Mexico) get a slight Elo bump in every match they play,
+    standing in for home advantage on home soil.
+    """
+    eh = params.elo.get(home, 1500) + (HOST_ELO_BONUS if home in HOST_TEAMS else 0)
+    ea = params.elo.get(away, 1500) + (HOST_ELO_BONUS if away in HOST_TEAMS else 0)
     # logistic expected score from Elo, then map to a goals multiplier
     exp_home = 1 / (1 + 10 ** ((ea - eh) / 400))
     # exp_home in (0,1); centered so an even matchup gives a ~1.0 multiplier.
