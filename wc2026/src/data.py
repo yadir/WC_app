@@ -22,6 +22,7 @@ import pandas as pd
 DATA_DIR = os.path.join(os.path.dirname(__file__), "..", "data")
 RESULTS_CSV = os.path.join(DATA_DIR, "results.csv")
 ELO_CSV = os.path.join(DATA_DIR, "elo.csv")
+MARKET_ODDS_CSV = os.path.join(DATA_DIR, "market_odds.csv")
 
 
 def load_results():
@@ -44,6 +45,18 @@ def load_elo():
         return None
     df = pd.read_csv(ELO_CSV)
     return dict(zip(df["team"], df["elo"]))
+
+
+def load_market_odds():
+    """Return dict team -> decimal outright-winner odds, or None if absent.
+
+    These are consensus bookmaker / prediction-market prices used to anchor the
+    team strength ratings toward the betting market (see model.blend_market_elo).
+    """
+    if not os.path.exists(MARKET_ODDS_CSV):
+        return None
+    df = pd.read_csv(MARKET_ODDS_CSV)
+    return dict(zip(df["team"], df["decimal_odds"]))
 
 
 def build_alias_map(aliases):

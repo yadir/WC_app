@@ -17,7 +17,7 @@ to refresh the numbers, then redeploy (or have the app read from a stored file).
 import json
 import os
 
-from .data import (load_results, load_elo, build_alias_map,
+from .data import (load_results, load_elo, load_market_odds, build_alias_map,
                    normalize_team_names)
 from .config import TEAM_ALIASES, ALL_TEAMS
 from . import model as M
@@ -34,6 +34,14 @@ def main(n_sims=10000):
     elo = load_elo()
     if elo:
         elo = { (alias_map.get(k, k)): v for k, v in elo.items() }
+
+    # Anchor team strengths toward the betting market's outright odds.
+    market = load_market_odds()
+    if elo and market:
+        market = { (alias_map.get(k, k)): v for k, v in market.items() }
+        elo = M.blend_market_elo(elo, market)
+        print(f"Anchored {sum(1 for t in market if t in elo)} teams to market odds "
+              f"(weight={M.MARKET_BLEND}).")
 
     print("Fitting model...")
     params = M.fit(results, elo)

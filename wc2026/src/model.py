@@ -21,16 +21,22 @@ from collections import defaultdict
 # ---- tunables -------------------------------------------------------------
 HALF_LIFE_DAYS = 365 * 2          # recent 2 years weigh ~2x vs 4 years ago
 MAX_GOALS = 8                     # truncate the score grid here
-ELO_BLEND = 0.70                  # 0 = pure Poisson, 1 = pure Elo-implied.
-                                  # Weighted toward Elo so favourites track the
-                                  # market/Opta rather than raw goal tallies
+ELO_BLEND = 0.85                  # 0 = pure Poisson, 1 = pure Elo-implied.
+                                  # Weighted heavily toward Elo so favourites
+                                  # track the market rather than raw goal tallies
                                   # (which over-rate teams that pad goals on
                                   # weak opposition).
-ELO_MULT_SPREAD = 1.30            # width of the Elo goal-multiplier band: the
+ELO_MULT_SPREAD = 1.70            # width of the Elo goal-multiplier band: the
                                   # multiplier runs (1 - SPREAD/2)..(1 + SPREAD/2)
                                   # from huge underdog to huge favourite. Wider =
                                   # favourites dominate more decisively (closer to
-                                  # Opta's concentrated odds).
+                                  # the bookmakers' concentrated odds).
+MARKET_BLEND = 0.90               # how hard to pull each team's strength rating
+                                  # toward the betting-market-implied Elo (see
+                                  # blend_market_elo). 0 = pure eloratings.net,
+                                  # 1 = pure market. High value keeps the title
+                                  # odds in line with the published outright odds
+                                  # while the Monte Carlo still drives the paths.
 
 # Host (home) advantage for the 2026 co-hosts. The standard Elo convention is
 # ~100 points for a true home game (worth roughly a third of a goal); we use a
@@ -102,6 +108,38 @@ def fit(results_df, elo_dict=None):
             elo_dict[t] = 1500 + strength * 250  # rough mapping to Elo scale
 
     return ModelParams(attack, defence, home_adv, base_goals, elo_dict)
+
+
+def market_implied_elo(elo, market_odds):
+    """Map betting outright odds onto the Elo scale.
+
+    Bookmaker outright odds are the market's all-in view of each team's strength
+    (squad quality, form, intangibles) that a results+Elo model can't fully see.
+    We regress the known Elo of priced teams against log(implied probability) and
+    use that line to read off a "market Elo" for each priced team. The overround
+    (bookmaker margin) cancels out because it only rescales every probability by
+    a constant, which the regression's intercept absorbs.
+    """
+    teams = [t for t in market_odds if t in elo]
+    if len(teams) < 3:
+        return {}
+    x = np.array([math.log(1.0 / market_odds[t]) for t in teams])
+    y = np.array([elo[t] for t in teams])
+    slope, intercept = np.polyfit(x, y, 1)
+    return {t: intercept + slope * math.log(1.0 / market_odds[t]) for t in teams}
+
+
+def blend_market_elo(elo, market_odds, weight=MARKET_BLEND):
+    """Return a copy of `elo` pulled toward the market-implied Elo.
+
+    Only teams that appear in `market_odds` are adjusted; everyone else keeps
+    their eloratings.net value untouched.
+    """
+    implied = market_implied_elo(elo, market_odds)
+    out = dict(elo)
+    for t, mv in implied.items():
+        out[t] = weight * mv + (1.0 - weight) * elo[t]
+    return out
 
 
 def _elo_implied_xg(params, home, away):

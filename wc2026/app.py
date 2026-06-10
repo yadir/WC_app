@@ -244,8 +244,8 @@ if sim is None or params is None:
 # Model helpers (inline so the app is standalone). Keep in sync with src/model.py
 # ---------------------------------------------------------------------------
 MAX_GOALS = 8
-ELO_BLEND = 0.70
-ELO_MULT_SPREAD = 1.30
+ELO_BLEND = 0.85
+ELO_MULT_SPREAD = 1.70
 HOST_TEAMS = {"United States", "Canada", "Mexico"}   # keep in sync with src/model.py
 HOST_ELO_BONUS = 50
 
